@@ -1,13 +1,20 @@
 uniform lowp float u_device_pixel_ratio;
 uniform sampler2D u_image;
+uniform float u_image_height;
 
 varying vec2 v_width2;
 varying vec2 v_normal;
 varying float v_gamma_scale;
 varying highp float v_lineprogress;
+varying highp float v_line_clip;
+varying lowp float v_split_index;
 
 #pragma mapbox: define lowp float blur
 #pragma mapbox: define lowp float opacity
+
+highp float map(highp float value, highp float start, highp float end, highp float new_start, highp float new_end) {
+    return ((value - start) * (new_end - new_start)) / (end - start) + new_start;
+}
 
 void main() {
     #pragma mapbox: initialize lowp float blur
@@ -22,9 +29,15 @@ void main() {
     float blur2 = (blur + 1.0 / u_device_pixel_ratio) * v_gamma_scale;
     float alpha = clamp(min(dist - (v_width2.t - blur2), v_width2.s - dist) / blur2, 0.0, 1.0);
 
-    // For gradient lines, v_lineprogress is the ratio along the entire line,
-    // scaled to [0, 2^15), and the gradient ramp is stored in a texture.
-    vec4 color = texture2D(u_image, vec2(v_lineprogress, 0.5));
+    highp float texel_height = 1.0 / u_image_height;
+    highp float half_texel_height = 0.5 * texel_height;
+    highp vec2 uv = vec2(
+        map(v_lineprogress, 0.0, v_line_clip, 0.0, 1.0),
+        v_split_index * texel_height - half_texel_height);
+
+    // For gradient lines, v_lineprogress is the ratio along the
+    // entire line, the gradient ramp is stored in a texture.
+    vec4 color = texture2D(u_image, uv);
 
     gl_FragColor = color * (alpha * opacity);
 
