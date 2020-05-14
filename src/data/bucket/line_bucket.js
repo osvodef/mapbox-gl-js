@@ -73,6 +73,7 @@ const MAX_LINE_DISTANCE = Math.pow(2, LINE_DISTANCE_BUFFER_BITS - 1) / LINE_DIST
 class LineBucket implements Bucket {
     distance: number;
     totalDistance: number;
+    maxLineLength: number;
     scaledDistance: number;
     clipStart: number;
     clipEnd: number;
@@ -113,6 +114,7 @@ class LineBucket implements Bucket {
         this.indexArray = new TriangleIndexArray();
         this.programConfigurations = new ProgramConfigurationSet(options.layers, options.zoom);
         this.segments = new SegmentVector();
+        this.maxLineLength = 0;
 
         this.stateDependentLayerIds = this.layers.filter((l) => l.isStateDependent()).map((l) => l.id);
     }
@@ -243,6 +245,8 @@ class LineBucket implements Bucket {
             }
             this.updateScaledDistance();
         }
+
+        this.maxLineLength = Math.max(this.maxLineLength, this.totalDistance / (this.clipEnd - this.clipStart));
 
         const isPolygon = vectorTileFeatureTypes[feature.type] === 'Polygon';
 
