@@ -244,9 +244,8 @@ class LineBucket implements Bucket {
                 this.totalDistance += vertices[i].dist(vertices[i + 1]);
             }
             this.updateScaledDistance();
+            this.maxLineLength = Math.max(this.maxLineLength, this.totalDistance / (this.clipEnd - this.clipStart));
         }
-
-        this.maxLineLength = Math.max(this.maxLineLength, this.totalDistance / (this.clipEnd - this.clipStart));
 
         const isPolygon = vectorTileFeatureTypes[feature.type] === 'Polygon';
 
