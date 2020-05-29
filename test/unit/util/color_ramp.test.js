@@ -1,6 +1,6 @@
 
 import {test} from '../../util/test';
-import renderColorRamp from '../../../src/util/color_ramp';
+import {renderColorRamp} from '../../../src/util/color_ramp';
 import {createPropertyExpression} from '../../../src/style-spec/expression';
 
 const spec = {
@@ -34,7 +34,7 @@ test('renderColorRamp linear', (t) => {
         1, 'red'
     ], spec, {handleErrors: false}).value;
 
-    const ramp = renderColorRamp(expression, 'lineProgress');
+    const ramp = renderColorRamp({expression, evaluationKey: 'lineProgress'});
 
     t.equal(ramp.width, 256);
     t.equal(ramp.height, 1);
@@ -61,7 +61,7 @@ test('renderColorRamp step', (t) => {
         1, 'black'
     ], spec, {handleErrors: false}).value;
 
-    const ramp = renderColorRamp(expression, 'lineProgress', 512);
+    const ramp = renderColorRamp({expression, evaluationKey: 'lineProgress', resolution: 512});
 
     t.equal(ramp.width, 512);
     t.equal(ramp.height, 1);
@@ -89,12 +89,12 @@ test('renderColorRamp usePlacement', (t) => {
         1, 'white'
     ], spec, {handleErrors: false}).value;
 
-    let ramp = renderColorRamp(expression, 'lineProgress', 512);
+    const ramp = renderColorRamp({expression, evaluationKey: 'lineProgress', resolution: 512});
 
     t.equal(ramp.width, 512);
     t.equal(ramp.height, 1);
 
-    ramp = renderColorRamp(expression, 'lineProgress', 512, ramp);
+    renderColorRamp({expression, evaluationKey: 'lineProgress', resolution: 512, image: ramp});
 
     t.equal(pixelAt(ramp, 0)[3], 127, 'pixel at 0.0 matches input alpha');
     t.ok(nearlyEquals(pixelAt(ramp, 50), [255, 0, 0, 127]), 'pixel < 0.1 matches input');

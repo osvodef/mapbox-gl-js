@@ -2,7 +2,7 @@
 
 import {test} from '../../util/test';
 
-import {easeCubicInOut, keysDifference, extend, pick, uniqueId, bindAll, asyncAll, clamp, wrap, bezier, endsWith, mapObject, filterObject, deepEqual, clone, arraysIntersect, isCounterClockwise, isClosedPolygon, parseCacheControl, uuid, validateUuid, nextPowerOfTwo, isPowerOfTwo} from '../../../src/util/util';
+import {easeCubicInOut, mapValue, keysDifference, extend, pick, uniqueId, bindAll, asyncAll, clamp, wrap, bezier, endsWith, mapObject, filterObject, deepEqual, clone, arraysIntersect, isCounterClockwise, isClosedPolygon, parseCacheControl, uuid, validateUuid, nextPowerOfTwo, isPowerOfTwo} from '../../../src/util/util';
 import Point from '@mapbox/point-geometry';
 
 test('util', (t) => {
@@ -104,6 +104,18 @@ test('util', (t) => {
         t.equal(isPowerOfTwo(nextPowerOfTwo(0)), true);
         t.equal(isPowerOfTwo(nextPowerOfTwo(-42)), true);
         t.equal(isPowerOfTwo(nextPowerOfTwo(42)), true);
+        t.end();
+    });
+
+    t.test('mapValue', (t) => {
+        t.equal(mapValue(0.0, 0.0, 1.0, 1.0, 2.0), 1.0);
+        t.equal(mapValue(1.0, 0.0, 2.0, 10.0, 20.0), 15.0);
+        t.equal(mapValue(5.0, 0.0, 10.0, 50.0, 100.0), 75.0);
+        t.equal(mapValue(0.0, -1.0, 1.0, 2.0, 3.0), 2.5);
+        t.equal(mapValue(-15.0, -10.0, -20.0, 10.0, 20.0), 15.0);
+        t.equal(mapValue(0.6, 0.0, 1.0, 1.0, 0.0), 0.4);
+        t.equal(mapValue(0.0, 0.0, 1.0, 0.0, 0.0), 0.0);
+        t.equal(mapValue(0.0, 0.0, 0.0, 0.0, 1.0), 0.0);
         t.end();
     });
 

@@ -4,13 +4,11 @@ import Point from '@mapbox/point-geometry';
 
 import StyleLayer from '../style_layer';
 import LineBucket from '../../data/bucket/line_bucket';
-import {RGBAImage} from '../../util/image';
 import {polygonIntersectsBufferedMultiLine} from '../../util/intersection_tests';
 import {getMaximumPaintValue, translateDistance, translate} from '../query_utils';
 import properties from './line_style_layer_properties';
-import {extend, clamp, nextPowerOfTwo} from '../../util/util';
+import {extend, MAX_SAFE_INTEGER} from '../../util/util';
 import EvaluationParameters from '../evaluation_parameters';
-import renderColorRamp from '../../util/color_ramp';
 import {Transitionable, Transitioning, Layout, PossiblyEvaluated, DataDrivenProperty} from '../properties';
 
 import Step from '../../style-spec/expression/definitions/step';
@@ -18,7 +16,6 @@ import type {FeatureState, ZoomConstantExpression} from '../../style-spec/expres
 import type {Bucket, BucketParameters} from '../../data/bucket';
 import type {LayoutProps, PaintProps} from './line_style_layer_properties';
 import type Transform from '../../geo/transform';
-import type Texture from '../../render/texture';
 import type {LayerSpecification} from '../../style-spec/types';
 
 class LineFloorwidthProperty extends DataDrivenProperty<number> {
@@ -47,8 +44,7 @@ class LineStyleLayer extends StyleLayer {
     _unevaluatedLayout: Layout<LayoutProps>;
     layout: PossiblyEvaluated<LayoutProps>;
 
-    gradient: ?RGBAImage;
-    gradientTexture: ?Texture;
+    gradientVersion: number;
     stepInterpolant: boolean;
 
     _transitionablePaint: Transitionable<PaintProps>;
@@ -57,23 +53,19 @@ class LineStyleLayer extends StyleLayer {
 
     constructor(layer: LayerSpecification) {
         super(layer, properties);
+        this.gradientVersion = 0;
     }
 
     _handleSpecialPaintPropertyUpdate(name: string) {
         if (name === 'line-gradient') {
             const expression: ZoomConstantExpression<'source'> = ((this._transitionablePaint._values['line-gradient'].value.expression): any);
             this.stepInterpolant = expression._styleExpression.expression instanceof Step;
-            this.gradientTexture = null;
+            this.gradientVersion = (this.gradientVersion + 1) % MAX_SAFE_INTEGER;
         }
     }
 
-    renderGradientFromExpression(geometryTileCoverageAtMaxZoom: number, maxTextureSize: number) {
-        const expression = this._transitionablePaint._values['line-gradient'].value.expression;
-        // Logical pixel tile size is 512px, and 1024px right before current zoom + 1
-        const maxTilePixelSize = 1024;
-        const maxTextureCoverage = geometryTileCoverageAtMaxZoom * maxTilePixelSize;
-        const textureResolution = nextPowerOfTwo(clamp(maxTextureCoverage, 256, maxTextureSize));
-        this.gradient = renderColorRamp(expression, 'lineProgress', this.stepInterpolant ? textureResolution : 256, this.gradient || undefined);
+    gradientExpression() {
+        return this._transitionablePaint._values['line-gradient'].value.expression;
     }
 
     recalculate(parameters: EvaluationParameters, availableImages: Array<string>) {

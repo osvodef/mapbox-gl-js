@@ -1,6 +1,6 @@
 // @flow
 
-import {LineLayoutArray, StructArrayLayout1f4} from '../array_types';
+import {LineLayoutArray, LineExtLayoutArray} from '../array_types';
 
 import {members as layoutAttributes} from './line_attributes';
 import {members as layoutAttributesExt} from './line_attributes_ext';
@@ -26,7 +26,9 @@ import type {
 import type LineStyleLayer from '../../style/style_layer/line_style_layer';
 import type Point from '@mapbox/point-geometry';
 import type {Segment} from '../segment';
+import {RGBAImage} from '../../util/image';
 import type Context from '../../gl/context';
+import type Texture from '../../render/texture';
 import type IndexBuffer from '../../gl/index_buffer';
 import type VertexBuffer from '../../gl/vertex_buffer';
 import type {FeatureStates} from '../../source/source_state';
@@ -69,8 +71,8 @@ const LINE_DISTANCE_SCALE = 1 / 2;
 const MAX_LINE_DISTANCE = Math.pow(2, LINE_DISTANCE_BUFFER_BITS - 1) / LINE_DISTANCE_SCALE;
 
 type LineClips = {
-    clipStart: number;
-    clipEnd: number;
+    start: number;
+    end: number;
 }
 
 /**
@@ -94,17 +96,20 @@ class LineBucket implements Bucket {
     stateDependentLayers: Array<any>;
     stateDependentLayerIds: Array<string>;
     patternFeatures: Array<BucketFeature>;
+    lineClipsArray: Array<LineClips>;
 
     layoutVertexArray: LineLayoutArray;
     layoutVertexBuffer: VertexBuffer;
-    layoutVertexArray2: StructArrayLayout1f4;
+    layoutVertexArray2: LineExtLayoutArray;
     layoutVertexBuffer2: VertexBuffer;
+    gradientTexture: Texture;
+    gradient: ?RGBAImage;
+    gradientVersion: number;
 
     indexArray: TriangleIndexArray;
     indexBuffer: IndexBuffer;
 
     hasPattern: boolean;
-    requiresHighPrecisionLineProgress: boolean;
     programConfigurations: ProgramConfigurationSet<LineStyleLayer>;
     segments: SegmentVector;
     uploaded: boolean;
@@ -116,11 +121,11 @@ class LineBucket implements Bucket {
         this.layerIds = this.layers.map(layer => layer.id);
         this.index = options.index;
         this.hasPattern = false;
-        this.requiresHighPrecisionLineProgress = false;
         this.patternFeatures = [];
+        this.lineClipsArray = [];
 
         this.layoutVertexArray = new LineLayoutArray();
-        this.layoutVertexArray2 = new StructArrayLayout1f4();
+        this.layoutVertexArray2 = new LineExtLayoutArray();
         this.indexArray = new TriangleIndexArray();
         this.programConfigurations = new ProgramConfigurationSet(options.layers, options.zoom);
         this.segments = new SegmentVector();
@@ -170,7 +175,6 @@ class LineBucket implements Bucket {
             });
         }
 
-        this.requiresHighPrecisionLineProgress = this._requiresHighPrecisionLineProgress(bucketFeatures);
         for (const bucketFeature of bucketFeatures) {
             const {geometry, index, sourceLayerIndex} = bucketFeature;
 
@@ -229,29 +233,10 @@ class LineBucket implements Bucket {
 
     lineFeatureClips(feature: BucketFeature): ?LineClips {
         if (!!feature.properties && feature.properties.hasOwnProperty('mapbox_clip_start') && feature.properties.hasOwnProperty('mapbox_clip_end')) {
-            const clipStart = +feature.properties['mapbox_clip_start'];
-            const clipEnd = +feature.properties['mapbox_clip_end'];
-            return {clipStart, clipEnd};
+            const start = +feature.properties['mapbox_clip_start'];
+            const end = +feature.properties['mapbox_clip_end'];
+            return {start, end};
         }
-    }
-
-    _requiresHighPrecisionLineProgress(features: Array<BucketFeature>) {
-        for (const bucketFeature of features) {
-            const lineClips = this.lineFeatureClips(bucketFeature);
-            if (!lineClips) continue;
-
-            let totalFeatureDistance = 0;
-            for (const line of bucketFeature.geometry) {
-                for (let i = 0; i < line.length - 1; i++) {
-                    totalFeatureDistance += line[i].dist(line[i + 1]);
-                }
-            }
-            const clipDiff = lineClips.clipEnd - lineClips.clipStart;
-            if (totalFeatureDistance / clipDiff > MAX_LINE_DISTANCE) {
-                return true;
-            }
-        }
-        return false;
     }
 
     addFeature(feature: BucketFeature, geometry: Array<Array<Point>>, index: number, canonical: CanonicalTileID, imagePositions: {[_: string]: ImagePosition}) {
@@ -275,13 +260,13 @@ class LineBucket implements Bucket {
         this.totalDistance = 0;
 
         if (this.lineClips) {
+            this.lineClipsArray.push(this.lineClips);
             // Calculate the total distance, in tile units, of this tiled line feature
             for (let i = 0; i < vertices.length - 1; i++) {
                 this.totalDistance += vertices[i].dist(vertices[i + 1]);
             }
             this.updateScaledDistance();
-            //$FlowFixMe
-            this.maxLineLength = Math.max(this.maxLineLength, this.totalDistance / (this.lineClips.clipEnd - this.lineClips.clipStart));
+            this.maxLineLength = Math.max(this.maxLineLength, this.totalDistance);
         }
 
         const isPolygon = vectorTileFeatureTypes[feature.type] === 'Polygon';
@@ -555,8 +540,11 @@ class LineBucket implements Bucket {
             linesofarScaled >> 6);
 
         // Constructs a second vertex buffer with higher precision line progress
-        if (this.requiresHighPrecisionLineProgress) {
-            this.layoutVertexArray2.emplaceBack(this.scaledDistance);
+        if (this.lineClips) {
+            this.layoutVertexArray2.emplaceBack(
+                this.scaledDistance - this.lineClips.start,
+                this.lineClips.end - this.lineClips.start,
+                this.lineClipsArray.length);
         }
 
         const e = segment.vertexLength++;
@@ -577,7 +565,7 @@ class LineBucket implements Bucket {
         // (in tile units) of the current vertex, we can determine the relative distance
         // of this vertex along the full linestring feature and scale it to [0, 2^15)
         this.scaledDistance = this.lineClips ?
-            this.lineClips.clipStart + (this.lineClips.clipEnd - this.lineClips.clipStart) * this.distance / this.totalDistance :
+            this.lineClips.start + (this.lineClips.end - this.lineClips.start) * this.distance / this.totalDistance :
             this.distance;
     }
 

@@ -7,6 +7,9 @@ import window from './window';
 
 import type {Callback} from '../types/callback';
 
+// Number.MAX_SAFE_INTEGER not available in IE
+export const MAX_SAFE_INTEGER = Math.pow(2, 53) - 1;
+
 /**
  * @module util
  * @private
@@ -224,6 +227,22 @@ export function isPowerOfTwo(value: number): boolean {
 export function nextPowerOfTwo(value: number): number {
     if (value <= 1) return 1;
     return Math.pow(2, Math.ceil(Math.log2(value)));
+}
+
+/**
+ * Remaps a value from one range to another
+ * @param value the value to remap
+ * @param start the start of previous range
+ * @param end the end of previous range
+ * @param newStart the new starting range
+ * @param newEnd the new ending range
+ * @private
+ */
+export function mapValue(value: number, start: number, end: number, newStart: number, newEnd: number): number {
+    if (end - start === 0.0) {
+        return 0.0;
+    }
+    return ((value - start) * (newEnd - newStart)) / (end - start) + newStart;
 }
 
 /**
