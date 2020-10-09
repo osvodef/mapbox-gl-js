@@ -1,13 +1,14 @@
 {
-  "name": "mapbox-gl",
+  "name": "@mapcreator/mapbox-gl",
   "description": "A WebGL interactive maps library",
   "version": "1.12.0",
   "main": "dist/mapbox-gl.js",
   "style": "dist/mapbox-gl.css",
   "license": "SEE LICENSE IN LICENSE.txt",
+  "registry": "https://npm.bleeding.maps4news.com",
   "repository": {
     "type": "git",
-    "url": "git://github.com/mapbox/mapbox-gl-js.git"
+    "url": "git://github.com/MapcreatorIO/mapbox-gl-new.git"
   },
   "engines": {
     "node": ">=6.4.0"
