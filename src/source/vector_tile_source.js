@@ -191,7 +191,7 @@ class VectorTileSource extends Evented implements Source {
             tileSize: this.tileSize * tile.tileID.overscaleFactor(),
             type: this.type,
             source: this.id,
-            pixelRatio: browser.devicePixelRatio,
+            pixelRatio: browser.devicePixelRatio * browser.dynamicScale,
             showCollisionBoxes: this.map.showCollisionBoxes,
             promoteId: this.promoteId
         };

@@ -4,6 +4,7 @@ import Point from '@mapbox/point-geometry';
 
 import window from './window';
 import assert from 'assert';
+import browser from './browser';
 
 const DOM = {};
 export default DOM;
@@ -106,8 +107,8 @@ DOM.suppressClick = function() {
 DOM.mousePos = function (el: HTMLElement, e: MouseEvent | window.TouchEvent | Touch) {
     const rect = el.getBoundingClientRect();
     return new Point(
-        e.clientX - rect.left - el.clientLeft,
-        e.clientY - rect.top - el.clientTop
+        (e.clientX - rect.left) / browser.dynamicScale - el.clientLeft,
+        (e.clientY - rect.top) / browser.dynamicScale - el.clientTop
     );
 };
 
@@ -116,8 +117,8 @@ DOM.touchPos = function (el: HTMLElement, touches: TouchList) {
         points = [];
     for (let i = 0; i < touches.length; i++) {
         points.push(new Point(
-            touches[i].clientX - rect.left - el.clientLeft,
-            touches[i].clientY - rect.top - el.clientTop
+            (touches[i].clientX - rect.left) / browser.dynamicScale - el.clientLeft,
+            (touches[i].clientY - rect.top) / browser.dynamicScale - el.clientTop
         ));
     }
     return points;
