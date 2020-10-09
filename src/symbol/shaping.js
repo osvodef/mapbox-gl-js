@@ -25,7 +25,7 @@ const WritingMode = {
 };
 
 const SHAPING_DEFAULT_OFFSET = -17;
-export {shapeText, shapeIcon, fitIconToText, getAnchorAlignment, WritingMode, SHAPING_DEFAULT_OFFSET};
+export {shapeText, shapeIcon, fitIconToText, getAnchorAlignment, WritingMode, SHAPING_DEFAULT_OFFSET, calculateBreakLines};
 
 // The position of a glyph relative to the text's anchor point.
 export type PositionedGlyph = {
@@ -234,6 +234,15 @@ function breakLines(input: TaggedString, lineBreakPoints: Array<number>): Array<
         lines.push(input.substring(start, text.length));
     }
     return lines;
+}
+
+function calculateBreakLines(text: string, fontStack: string, spacing: number, maxwidth: number, fontSize: number, symbolPlacement: string, glyphs: any, imagePositions: any) {
+    const rmaxwidth = maxwidth * ONE_EM;
+    const rspacing = spacing * ONE_EM;
+
+    const fText = Formatted.fromString(text);
+    const taggedString = TaggedString.fromFeature(fText, fontStack);
+    return breakLines(taggedString, determineLineBreaks(taggedString, rspacing, rmaxwidth, glyphs, imagePositions, symbolPlacement, fontSize));
 }
 
 function shapeText(text: Formatted,

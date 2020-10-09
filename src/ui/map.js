@@ -27,6 +27,7 @@ import {MapMouseEvent} from './events';
 import TaskQueue from '../util/task_queue';
 import webpSupported from '../util/webp_supported';
 import {PerformanceMarkers, PerformanceUtils} from '../util/performance';
+import {calculateBreakLines} from '../symbol/shaping';
 
 import {setCacheLimits} from '../util/tile_request_cache';
 
@@ -57,6 +58,8 @@ import type {
     LightSpecification,
     SourceSpecification
 } from '../style-spec/types';
+
+import ImageAtlas from '../render/image_atlas';
 
 type ControlPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 /* eslint-disable no-use-before-define */
@@ -2255,6 +2258,43 @@ class Map extends Camera {
      */
     getCanvas() {
         return this._canvas;
+    }
+
+    getLineBreaks(text: string, fontstack: string, spacing: number, maxWidth: number, fontSize: number, symbolPlacement: string) {
+        const glyphManager = this.style.glyphManager;
+        const imageManager = this.painter.imageManager;
+        const stacks = {};
+        const codePoints = new Set();
+
+        /* Fetch the code points from the text. */
+        for (let i = 0; i < text.length; i++) {
+            codePoints.add(text.charCodeAt(i));
+        }
+
+        /*
+         * Fetch the glyps, this will optionally download it if they
+         * are missing. Note that the entries in the glyphManager itself
+         * cannot be assumed to be the correct mapping from the string,
+         * hence we need to do this for every string.
+         */
+        stacks[fontstack] = Array.from(codePoints);
+        let glyphs = {};
+        glyphManager.getGlyphs(stacks, (err, result) => {
+            if (!err) {
+                glyphs = result;
+            }
+        });
+
+        const atlas = new ImageAtlas(imageManager.images, {});
+
+        /* fetch the line breaks from the symbol shaping. */
+        const lines = calculateBreakLines(text, fontstack, spacing, maxWidth, fontSize, symbolPlacement, glyphs, atlas.iconPositions);
+        const segments = [];
+        lines.forEach((line) => {
+            segments.push(line.text);
+        });
+
+        return segments;
     }
 
     _containerDimensions() {
