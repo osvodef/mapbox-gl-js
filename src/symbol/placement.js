@@ -211,6 +211,11 @@ export class Placement {
     zoomAtLastRecencyCheck: number;
     collisionCircleArrays: {[any]: CollisionCircleArray};
 
+    glyphCircles: {[number]: {[number]: Array<number[]>}};
+    placedBoxes: {[number]: {[number]: Array<number[]>}};
+    anchorAngles: {[number]: {[number]: number[]}};
+    variableAnchors: {[number]: {[number]: string}};
+
     constructor(transform: Transform, fadeDuration: number, crossSourceCollisions: boolean, prevPlacement?: Placement) {
         this.transform = transform.clone();
         this.collisionIndex = new CollisionIndex(this.transform);
@@ -223,6 +228,11 @@ export class Placement {
         this.retainedQueryData = {};
         this.collisionGroups = new CollisionGroups(crossSourceCollisions);
         this.collisionCircleArrays = {};
+
+        this.glyphCircles = {};
+        this.placedBoxes = {};
+        this.anchorAngles = {};
+        this.variableAnchors = {};
 
         this.prevPlacement = prevPlacement;
         if (prevPlacement) {
@@ -533,6 +543,7 @@ export class Placement {
                                 if (placedBox && placedBox.box && placedBox.box.length) {
                                     placeText = true;
                                     shift = result.shift;
+                                    this.addVariableAnchor(bucket.bucketInstanceId, textFeatureIndex, anchor);
                                     break;
                                 }
                             }
@@ -659,13 +670,20 @@ export class Placement {
                         bucket.bucketInstanceId, textFeatureIndex, collisionGroup.ID);
                 }
 
+                this.addPlacedBox(bucket.bucketInstanceId, textFeatureIndex, placedGlyphBoxes.box);
             }
             if (placeIcon && placedIconBoxes) {
                 this.collisionIndex.insertCollisionBox(placedIconBoxes.box, layout.get('icon-ignore-placement'),
                         bucket.bucketInstanceId, iconFeatureIndex, collisionGroup.ID);
             }
+            if (placeText || placeIcon) {
+                this.addAnchorAngle(bucket.bucketInstanceId, textFeatureIndex, symbolInstance.angle);
+            }
             if (placedGlyphCircles) {
                 if (placeText) {
+                    if (!offscreen) {
+                        this.addGlyphCircles(bucket.bucketInstanceId, textFeatureIndex, placedGlyphCircles.circles);
+                    }
                     this.collisionIndex.insertCollisionCircles(placedGlyphCircles.circles, layout.get('text-ignore-placement'),
                         bucket.bucketInstanceId, textFeatureIndex, collisionGroup.ID);
                 }
@@ -1086,6 +1104,48 @@ export class Placement {
 
     setStale() {
         this.stale = true;
+    }
+
+    addGlyphCircles(bucketID: number, featureID: number, circles: number[]) {
+        if (!(bucketID in this.glyphCircles)) {
+            this.glyphCircles[bucketID] = {};
+        }
+
+        if (!(featureID in this.glyphCircles[bucketID])) {
+            this.glyphCircles[bucketID][featureID] = [];
+        }
+
+        this.glyphCircles[bucketID][featureID].push(circles);
+    }
+
+    addPlacedBox(bucketID: number, featureID: number, box: number[]) {
+        if (!(bucketID in this.placedBoxes)) {
+            this.placedBoxes[bucketID] = {};
+        }
+        if (!(featureID in this.placedBoxes[bucketID])) {
+            this.placedBoxes[bucketID][featureID] = [];
+        }
+
+        this.placedBoxes[bucketID][featureID].push(box);
+    }
+
+    addAnchorAngle(bucketID: number, featureID: number, angle: number) {
+        if (!(bucketID in this.anchorAngles)) {
+            this.anchorAngles[bucketID] = {};
+        }
+        if (!(featureID in this.anchorAngles[bucketID])) {
+            this.anchorAngles[bucketID][featureID] = [];
+        }
+
+        this.anchorAngles[bucketID][featureID].push(angle);
+    }
+
+    addVariableAnchor(bucketID: number, featureID: number, anchor: string) {
+        if (!(bucketID in this.variableAnchors)) {
+            this.variableAnchors[bucketID] = {};
+        }
+
+        this.variableAnchors[bucketID][featureID] = anchor;
     }
 }
 

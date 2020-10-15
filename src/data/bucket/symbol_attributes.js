@@ -104,6 +104,7 @@ export const symbolInstance = createLayout([
     {type: 'Float32', name: 'textBoxScale'},
     {type: 'Float32', components: 2, name: 'textOffset'},
     {type: 'Float32', name: 'collisionCircleDiameter'},
+    {type: 'Float32', name: 'angle'}
 ]);
 
 export const glyphOffset = createLayout([

@@ -25,7 +25,7 @@ import type {
 // the viewport for collision detection so that the bulk of the changes
 // occur offscreen. Making this constant greater increases label
 // stability, but it's expensive.
-const viewportPadding = 100;
+export const viewportPadding = 100;
 
 /**
  * A collision index used to prevent symbols from overlapping. It keep tracks of

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mapbox GL JS debug page</title>
+    <meta charset='utf-8'>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel='stylesheet' href='/dist/mapbox-gl.css'/>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body, #map {
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+<div id='map'></div>
+
+<script src='/dist/mapbox-gl-dev.js'></script>
+<script src='/debug/access_token_generated.js'></script>
+<script>
+    const map = window.map = new mapboxgl.Map({
+        container: 'map',
+        zoom: 12.5,
+        center: [-77.01866, 38.888],
+        hash: true,
+        style: 'mapbox://styles/mapbox/streets-v10',
+    });
+
+    map.once('idle', function() {
+        const features = map.queryRenderedFeatures({evaluate: true});
+
+        features.forEach((feature) => {
+            if (!feature.boxes) {
+                return;
+            }
+
+            const start = map.unproject([feature.boxes[0][0], feature.boxes[0][1]]);
+            const end = map.unproject([feature.boxes[0][2], feature.boxes[0][3]]);
+
+            const name = '' + (new Date()).getMilliseconds() + '' + Math.floor(Math.random() * 1000000000);
+            console.log(feature);
+
+            map.addSource(name, {
+                'type': 'geojson',
+                'data': {
+                    'type': 'Feature',
+                    'properties': {},
+                    'geometry': {
+                        'type': 'LineString',
+                        'coordinates': [
+                            [start.lng, start.lat],
+                            [end.lng, start.lat],
+                            [end.lng, end.lat],
+                            [start.lng, end.lat],
+                            [start.lng, start.lat],
+                        ]
+                    }
+                }
+            });
+
+            map.addLayer({
+                'id': name,
+                'type': 'line',
+                'source': name,
+                'layout': {
+                    'line-join': 'round',
+                    'line-cap': 'round'
+                },
+                'paint': {
+                    'line-color': 'red',
+                    'line-width': 1
+                }
+            });
+        });
+    });
+</script>
+</body>
+</html>

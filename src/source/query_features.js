@@ -9,6 +9,9 @@ import type {FilterSpecification} from '../style-spec/types';
 import assert from 'assert';
 import {mat4} from 'gl-matrix';
 
+import {viewportPadding} from '../symbol/collision_index';
+import Point from '@mapbox/point-geometry';
+
 /*
  * Returns a matrix that can be used to convert from tile coordinates to viewport pixel coordinates.
  */
@@ -135,6 +138,7 @@ export function queryRenderedSymbols(styleLayers: {[_: string]: StyleLayer},
                 }
             });
             for (const symbolFeature of layerSymbols) {
+                appendAdditionalSymbolData(sourceCaches, styleLayers, queryData, layerID, symbolFeature);
                 resultFeatures.push(symbolFeature);
             }
         }
@@ -205,4 +209,138 @@ function mergeRenderedFeatureLayers(tiles) {
         }
     }
     return result;
+}
+
+function appendAdditionalSymbolData(sourceCaches, styleLayers, queryData, layerID, symbolFeature) {
+    const sourceCache = sourceCaches[styleLayers[layerID].source];
+    const glyphCircles = sourceCache.style.placement.glyphCircles;
+    const placedBoxes = sourceCache.style.placement.placedBoxes;
+    const anchorAngles = sourceCache.style.placement.anchorAngles;
+    const variableAnchors = sourceCache.style.placement.variableAnchors;
+    const bucketID = queryData.bucketInstanceId;
+    const featureID = symbolFeature.featureIndex;
+
+    /* check if there is a placement path for this symbol. */
+    if (bucketID in glyphCircles && featureID in glyphCircles[bucketID]) {
+        const circles = glyphCircles[bucketID][featureID];
+        const angles = anchorAngles[bucketID][featureID];
+        let index = 0;
+        symbolFeature.feature['paths'] = [];
+
+        circles.forEach((path) => {
+            let coords = [];
+
+            /**
+             * amount of unique coordinates.
+             *
+             * let k be (i * 4), then:
+             * k is the x coordinate.
+             * (k+1) is the y coordinate.
+             * (k+2) is the radius.
+             * (k+3) is the index.
+             */
+            const pathLen = path.length / 4;
+            for (let i = 0; i < pathLen; i++) {
+                /* coordinates have an extra padding. */
+                coords.push(path[(i * 4)] - viewportPadding);
+                coords.push(path[(i * 4) + 1] - viewportPadding);
+            }
+
+            /**
+             * reverse the coordinate array if the x
+             * of the first coordinate is higher than the
+             * x of the last coordinate.
+             */
+            const len = coords.length / 2;
+            if (coords[0] > coords[(coords.length - 2)]) {
+                const reversed = [];
+                for (let i = 1; i <= len; i++) {
+                    reversed.push(coords[(len - i) * 2]);
+                    reversed.push(coords[(len - i) * 2 + 1]);
+                }
+
+                coords = reversed;
+            }
+
+            const distance = 20;
+            if (len === 1) {
+                const angle = angles[index];
+                const center = new Point(coords[0], coords[1]);
+                let left = new Point(coords[0] - distance, coords[1]);
+                let right = new Point(coords[0] + distance, coords[1]);
+                /**
+                 * x′ = ((x - cx) * cos(theta) + (y - cy) * sin(theta)) + cx
+                 * y′ = (-(x - cx) * sin(theta) + (y - cy) * cos(theta)) + cy
+                 * Where cx and cy are the center coordinates and theta
+                 * is the angle in radians.
+                 */
+                left = left.rotateAround(angle, center);
+                right = right.rotateAround(angle, center);
+                symbolFeature.feature['paths'].push([left.x, left.y, right.x, right.y]);
+            } else {
+                // Extend the beginning of the path:
+                const begin = extend(coords[2], coords[3], coords[0], coords[1], distance);
+                if (begin !== undefined) {
+                    coords[0] = begin.x;
+                    coords[1] = begin.y;
+                }
+
+                // Extend the end of the path:
+                const clen = coords.length;
+                const end = extend(coords[clen - 4], coords[clen - 3], coords[clen - 2], coords[clen - 1], distance);
+                if (end !== undefined) {
+                    coords[clen - 2] = end.x;
+                    coords[clen - 1] = end.y;
+                }
+
+                symbolFeature.feature['paths'].push(coords);
+            }
+
+            index++;
+        });
+    }
+
+    /* check if there is a box to be placed for this symbol. */
+    if (bucketID in placedBoxes && featureID in placedBoxes[bucketID]) {
+        const boxes = placedBoxes[bucketID][featureID];
+        symbolFeature.feature['boxes'] = [];
+
+        boxes.forEach(box => {
+            const coords = [];
+
+            box.forEach(coord => {
+                coords.push(coord - viewportPadding);
+            });
+
+            symbolFeature.feature['boxes'].push(coords);
+        });
+    }
+
+    if (bucketID in anchorAngles && featureID in anchorAngles[bucketID]) {
+        const angles = anchorAngles[bucketID][featureID];
+        symbolFeature.feature['angles'] = [];
+
+        angles.forEach(angle => {
+            symbolFeature.feature['angles'].push(angle * 180 / Math.PI);
+        });
+    }
+
+    if (bucketID in variableAnchors && featureID in variableAnchors[bucketID]) {
+        symbolFeature.feature['placement-anchor'] = variableAnchors[bucketID][featureID];
+    }
+}
+
+function extend(p1X, p1Y, p2X, p2Y, distance) {
+    /* we cannot calculate the extension of a point. */
+    if (p1X === p2X && p1Y === p2Y) {
+        return;
+    }
+
+    const L = Math.sqrt(Math.pow((p1X - p2X), 2) + Math.pow(p1Y - p2Y, 2));
+    const factor = (distance + L) / L;
+
+    return {
+        x: p1X + (p2X - p1X) * factor,
+        y: p1Y + (p2Y - p1Y) * factor
+    };
 }

@@ -774,7 +774,8 @@ function addSymbol(bucket: SymbolBucket,
         textBoxScale,
         textOffset0,
         textOffset1,
-        collisionCircleDiameter);
+        collisionCircleDiameter,
+        anchor.angle);
 }
 
 function anchorIsTooClose(bucket: any, text: string, repeatDistance: number, anchor: Point) {
