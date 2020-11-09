@@ -54,7 +54,7 @@ const exported = {
         return linkEl.href;
     },
 
-    hardwareConcurrency: window.navigator && window.navigator.hardwareConcurrency || 4,
+    hardwareConcurrency: 1,
 
     dynamicScale: 1,
 

@@ -1,6 +1,6 @@
 // @flow
 
-import {prelude} from '../shaders';
+import { prelude } from '../shaders';
 import assert from 'assert';
 import ProgramConfiguration from '../data/program_configuration';
 import VertexArrayObject from './vertex_array_object';
@@ -13,15 +13,15 @@ import type DepthMode from '../gl/depth_mode';
 import type StencilMode from '../gl/stencil_mode';
 import type ColorMode from '../gl/color_mode';
 import type CullFaceMode from '../gl/cull_face_mode';
-import type {UniformBindings, UniformValues, UniformLocations} from './uniform_binding';
-import type {BinderUniform} from '../data/program_configuration';
+import type { UniformBindings, UniformValues, UniformLocations } from './uniform_binding';
+import type { BinderUniform } from '../data/program_configuration';
 
 export type DrawMode =
     | $PropertyType<WebGLRenderingContext, 'LINES'>
     | $PropertyType<WebGLRenderingContext, 'TRIANGLES'>
     | $PropertyType<WebGLRenderingContext, 'LINE_STRIP'>;
 
-function getTokenizedAttributesAndUniforms (array: Array<string>): Array<string> {
+function getTokenizedAttributesAndUniforms(array: Array<string>): Array<string> {
     const result = [];
 
     for (let i = 0; i < array.length; i++) {
@@ -33,18 +33,25 @@ function getTokenizedAttributesAndUniforms (array: Array<string>): Array<string>
 }
 class Program<Us: UniformBindings> {
     program: WebGLProgram;
-    attributes: {[_: string]: number};
+    attributes: { [_: string]: number };
     numAttributes: number;
     fixedUniforms: Us;
     binderUniforms: Array<BinderUniform>;
     failedToCreate: boolean;
 
-    constructor(context: Context,
-            name: string,
-            source: {fragmentSource: string, vertexSource: string, staticAttributes: Array<string>, staticUniforms: Array<string>},
-            configuration: ?ProgramConfiguration,
-            fixedUniforms: (Context, UniformLocations) => Us,
-            showOverdrawInspector: boolean) {
+    constructor(
+        context: Context,
+        name: string,
+        source: {
+            fragmentSource: string,
+            vertexSource: string,
+            staticAttributes: Array<string>,
+            staticUniforms: Array<string>,
+        },
+        configuration: ?ProgramConfiguration,
+        fixedUniforms: (Context, UniformLocations) => Us,
+        showOverdrawInspector: boolean
+    ) {
         const gl = context.gl;
         this.program = gl.createProgram();
 
@@ -52,7 +59,9 @@ class Program<Us: UniformBindings> {
         const dynamicAttrInfo = configuration ? configuration.getBinderAttributes() : [];
         const allAttrInfo = staticAttrInfo.concat(dynamicAttrInfo);
 
-        const staticUniformsInfo = source.staticUniforms ? getTokenizedAttributesAndUniforms(source.staticUniforms) : [];
+        const staticUniformsInfo = source.staticUniforms
+            ? getTokenizedAttributesAndUniforms(source.staticUniforms)
+            : [];
         const dynamicUniformsInfo = configuration ? configuration.getBinderUniforms() : [];
         // remove duplicate uniforms
         const uniformList = staticUniformsInfo.concat(dynamicUniformsInfo);
@@ -66,7 +75,9 @@ class Program<Us: UniformBindings> {
             defines.push('#define OVERDRAW_INSPECTOR;');
         }
 
-        const fragmentSource = defines.concat(prelude.fragmentSource, source.fragmentSource).join('\n');
+        const fragmentSource = defines
+            .concat(prelude.fragmentSource, source.fragmentSource)
+            .join('\n');
         const vertexSource = defines.concat(prelude.vertexSource, source.vertexSource).join('\n');
         const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
         if (gl.isContextLost()) {
@@ -75,7 +86,10 @@ class Program<Us: UniformBindings> {
         }
         gl.shaderSource(fragmentShader, fragmentSource);
         gl.compileShader(fragmentShader);
-        assert(gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS), (gl.getShaderInfoLog(fragmentShader): any));
+        assert(
+            gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS),
+            (gl.getShaderInfoLog(fragmentShader): any)
+        );
         gl.attachShader(this.program, fragmentShader);
 
         const vertexShader = gl.createShader(gl.VERTEX_SHADER);
@@ -85,7 +99,10 @@ class Program<Us: UniformBindings> {
         }
         gl.shaderSource(vertexShader, vertexSource);
         gl.compileShader(vertexShader);
-        assert(gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS), (gl.getShaderInfoLog(vertexShader): any));
+        assert(
+            gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS),
+            (gl.getShaderInfoLog(vertexShader): any)
+        );
         gl.attachShader(this.program, vertexShader);
 
         this.attributes = {};
@@ -101,7 +118,10 @@ class Program<Us: UniformBindings> {
         }
 
         gl.linkProgram(this.program);
-        assert(gl.getProgramParameter(this.program, gl.LINK_STATUS), (gl.getProgramInfoLog(this.program): any));
+        assert(
+            gl.getProgramParameter(this.program, gl.LINK_STATUS),
+            (gl.getProgramInfoLog(this.program): any)
+        );
 
         gl.deleteShader(vertexShader);
         gl.deleteShader(fragmentShader);
@@ -117,26 +137,29 @@ class Program<Us: UniformBindings> {
         }
 
         this.fixedUniforms = fixedUniforms(context, uniformLocations);
-        this.binderUniforms = configuration ? configuration.getUniforms(context, uniformLocations) : [];
+        this.binderUniforms = configuration
+            ? configuration.getUniforms(context, uniformLocations)
+            : [];
     }
 
-    draw(context: Context,
-         drawMode: DrawMode,
-         depthMode: $ReadOnly<DepthMode>,
-         stencilMode: $ReadOnly<StencilMode>,
-         colorMode: $ReadOnly<ColorMode>,
-         cullFaceMode: $ReadOnly<CullFaceMode>,
-         uniformValues: UniformValues<Us>,
-         layerID: string,
-         layoutVertexBuffer: VertexBuffer,
-         indexBuffer: IndexBuffer,
-         segments: SegmentVector,
-         currentProperties: any,
-         zoom: ?number,
-         configuration: ?ProgramConfiguration,
-         dynamicLayoutBuffer: ?VertexBuffer,
-         dynamicLayoutBuffer2: ?VertexBuffer) {
-
+    draw(
+        context: Context,
+        drawMode: DrawMode,
+        depthMode: $ReadOnly<DepthMode>,
+        stencilMode: $ReadOnly<StencilMode>,
+        colorMode: $ReadOnly<ColorMode>,
+        cullFaceMode: $ReadOnly<CullFaceMode>,
+        uniformValues: UniformValues<Us>,
+        layerID: string,
+        layoutVertexBuffer: VertexBuffer,
+        indexBuffer: IndexBuffer,
+        segments: SegmentVector,
+        currentProperties: any,
+        zoom: ?number,
+        configuration: ?ProgramConfiguration,
+        dynamicLayoutBuffer: ?VertexBuffer,
+        dynamicLayoutBuffer2: ?VertexBuffer
+    ) {
         const gl = context.gl;
 
         if (this.failedToCreate) return;
@@ -152,18 +175,21 @@ class Program<Us: UniformBindings> {
         }
 
         if (configuration) {
-            configuration.setUniforms(context, this.binderUniforms, currentProperties, {zoom: (zoom: any)});
+            configuration.setUniforms(context, this.binderUniforms, currentProperties, {
+                zoom: (zoom: any),
+            });
         }
 
         const primitiveSize = {
             [gl.LINES]: 2,
             [gl.TRIANGLES]: 3,
-            [gl.LINE_STRIP]: 1
+            [gl.LINE_STRIP]: 1,
         }[drawMode];
 
         for (const segment of segments.get()) {
             const vaos = segment.vaos || (segment.vaos = {});
-            const vao: VertexArrayObject = vaos[layerID] || (vaos[layerID] = new VertexArrayObject());
+            const vao: VertexArrayObject =
+                vaos[layerID] || (vaos[layerID] = new VertexArrayObject());
 
             vao.bind(
                 context,
@@ -180,7 +206,15 @@ class Program<Us: UniformBindings> {
                 drawMode,
                 segment.primitiveLength * primitiveSize,
                 gl.UNSIGNED_SHORT,
-                segment.primitiveOffset * primitiveSize * 2);
+                segment.primitiveOffset * primitiveSize * 2
+            );
+
+            if (window.vtxCounts[layerID] === undefined) {
+                window.vtxCounts[layerID] = 0;
+            }
+
+            window.vtxCounts[layerID] += segment.primitiveLength * primitiveSize;
+            window.drawCount += 1;
         }
     }
 }

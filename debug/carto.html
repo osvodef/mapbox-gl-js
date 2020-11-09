@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Mapbox GL JS debug page</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+        <link rel="stylesheet" href="../dist/mapbox-gl.css" />
+        <style>
+            html,
+            body {
+                padding: 0;
+                margin: 0;
+                height: 100%;
+                overflow: hidden;
+                font-family: 'Courier New', Courier, monospace;
+            }
+
+            #map {
+                position: absolute;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                right: 400px;
+            }
+
+            #panel {
+                background-color: white;
+                position: absolute;
+                top: 0;
+                right: 0;
+                width: 400px;
+                height: 100%;
+                overflow: auto;
+            }
+
+            .layers-header {
+                font-size: 20px;
+                font-weight: bold;
+                height: 30px;
+                text-transform: uppercase;
+                padding: 0 10px;
+                border-bottom: 2px solid black;
+                line-height: 30px;
+            }
+
+            .layer {
+                height: 40px;
+                position: relative;
+                border-bottom: 1px solid black;
+                cursor: pointer;
+            }
+
+            .layer-bar {
+                background-color: #ff5c5c;
+                position: absolute;
+                top: 0;
+                left: 0;
+                height: 100%;
+            }
+
+            .layer-text {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                padding: 0 10px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                font-size: 12px;
+            }
+
+            .layer-vtcs {
+                font-weight: bold;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="map"></div>
+        <div id="panel"></div>
+
+        <script src="../dist/mapbox-gl-dev.js"></script>
+        <script src="https://unpkg.com/stats.js@0.17.0/build/stats.min.js"></script>
+        <script src="./carto.js"></script>
+    </body>
+</html>
