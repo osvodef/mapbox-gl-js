@@ -595,8 +595,10 @@ class Map extends Camera {
         const width = dimensions[0];
         const height = dimensions[1];
 
+        const {dynamicScale} = browser;
+
         this._resizeCanvas(width, height);
-        this.transform.resize(width, height);
+        this.transform.resize(width / dynamicScale, height / dynamicScale);
         this.painter.resize(width, height);
 
         const fireMoving = !this._moving;
@@ -896,6 +898,15 @@ class Map extends Camera {
      */
     isRotating(): boolean {
         return this._rotating || this.handlers.isRotating();
+    }
+
+    setScale(scale: number): void {
+        browser.dynamicScale = scale;
+        this.resize();
+    }
+
+    getScale(): number {
+        return browser.dynamicScale;
     }
 
     _createDelegatedListener(type: MapEvent, layerId: any, listener: any) {
@@ -2322,7 +2333,7 @@ class Map extends Camera {
     }
 
     _resizeCanvas(width: number, height: number) {
-        const pixelRatio = browser.devicePixelRatio || 1;
+        const pixelRatio = (browser.devicePixelRatio || 1) / browser.dynamicScale;
 
         // Request the required canvas size taking the pixelratio into account.
         this._canvas.width = pixelRatio * width;

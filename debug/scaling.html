@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Mapbox GL JS debug page</title>
+        <meta charset="utf-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, user-scalable=no"
+        />
+        <link rel="stylesheet" href="../dist/mapbox-gl.css" />
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            html,
+            body,
+            #map {
+                height: 100%;
+            }
+
+            #scale-container {
+                display: flex;
+                position: absolute;
+                bottom: 50px;
+                left: 100px;
+                right: 100px;
+                background-color: white;
+                border: 1px solid #ccc;
+                padding: 5px 10px;
+                border-radius: 10px;
+            }
+
+            #scale {
+                flex-grow: 1;
+            }
+
+            #label {
+                flex-grow: 0;
+                width: 100px;
+                text-align: center;
+                font-family: monospace;
+                font-size: 24px;
+                font-weight: bold;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="map"></div>
+        <div id="scale-container">
+            <input
+                id="scale"
+                type="range"
+                name="scale"
+                min="0.5"
+                max="3"
+                value="1"
+                step="any"
+            />
+            <div id="label">1.00</div>
+        </div>
+
+        <script src="../dist/mapbox-gl-dev.js"></script>
+        <script src="../debug/access_token_generated.js"></script>
+        <script>
+            const map = (window.map = new mapboxgl.Map({
+                container: "map",
+                zoom: 12.5,
+                center: [-77.01866, 38.888],
+                style: "mapbox://styles/mapbox/streets-v10",
+                hash: true,
+            }));
+
+            const slider = document.querySelector("#scale");
+            const label = document.querySelector("#label");
+
+            slider.addEventListener("input", () => {
+                map.setScale(Number(slider.value));
+                label.innerText = Number(slider.value).toFixed(2);
+            });
+        </script>
+    </body>
+</html>
